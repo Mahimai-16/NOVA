@@ -1,11 +1,12 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
+const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : "";
 
 /**
  * Content Security Policy without nonces, so every page stays statically
  * prerendered (see node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md).
- * Third parties allowed: Cloudflare Turnstile (spam check). Vercel Analytics and
+ * Third parties allowed: Cloudflare Turnstile (spam check), Supabase (browser client). Vercel Analytics and
  * Speed Insights are served from this site's own origin (/_vercel/*).
  */
 const csp = [
@@ -14,7 +15,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  `connect-src 'self' https://challenges.cloudflare.com${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self' https://challenges.cloudflare.com ${supabaseOrigin}${isDev ? " ws: wss:" : ""}`.trim(),
   "frame-src https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
   "object-src 'none'",

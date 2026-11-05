@@ -1,6 +1,7 @@
 -- Nova Covenant: enquiry leads table.
 -- Run once in Supabase → SQL Editor → New query → paste → Run.
 -- Safe to re-run: every statement is idempotent.
+-- No login is required to submit a lead; nobody can read leads through the public API.
 
 create table if not exists public.leads (
   id              uuid primary key default gen_random_uuid(),
@@ -50,7 +51,85 @@ create trigger leads_set_updated_at
   for each row execute function public.leads_set_updated_at();
 
 -- Security: lock the table. Row Level Security is ON with NO policies, so the
--- public (anon) and signed-in (authenticated) API roles can neither read nor write.
--- Only the website's server, using the secret key, can insert leads.
+-- public API roles (anon = the publishable key, authenticated) can't read, edit
+-- or delete leads directly. Leads can only be ADDED, through submit_lead() below.
 alter table public.leads enable row level security;
 revoke all on table public.leads from anon, authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- submit_lead(): the only way the public can add a lead (no login required).
+-- Runs with the table owner's rights (security definer), validates input via the
+-- table's CHECK constraints, and enforces rate limits inside the database, so the
+-- limits hold even if someone calls the API directly with the publishable key.
+-- Returns the new lead's id. Raises 'RATE_LIMITED' when a limit is hit.
+-- ─────────────────────────────────────────────────────────────────────────────
+create or replace function public.submit_lead(
+  p_full_name      text,
+  p_company_name   text,
+  p_business_email text,
+  p_country        text,
+  p_division       text,
+  p_requirement    text,
+  p_message        text,
+  p_ip_hash        text default null,
+  p_user_agent     text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+begin
+  -- Per connection: 5 leads per 10 minutes
+  if p_ip_hash is not null and (
+    select count(*) from public.leads
+    where ip_hash = p_ip_hash and created_at > now() - interval '10 minutes'
+  ) >= 5 then
+    raise exception 'RATE_LIMITED: too many enquiries from this connection';
+  end if;
+
+  -- Per email address: 5 leads per hour
+  if (
+    select count(*) from public.leads
+    where lower(business_email) = lower(trim(p_business_email))
+      and created_at > now() - interval '1 hour'
+  ) >= 5 then
+    raise exception 'RATE_LIMITED: too many enquiries from this email address';
+  end if;
+
+  -- Whole site: 200 leads per hour (flood protection)
+  if (select count(*) from public.leads where created_at > now() - interval '1 hour') >= 200 then
+    raise exception 'RATE_LIMITED: enquiry volume limit reached';
+  end if;
+
+  insert into public.leads (
+    full_name, company_name, business_email, country, division,
+    requirement, message, ip_hash, user_agent
+  ) values (
+    trim(p_full_name), trim(p_company_name), lower(trim(p_business_email)), trim(p_country), p_division,
+    trim(p_requirement), trim(p_message), left(p_ip_hash, 64), left(p_user_agent, 300)
+  )
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+-- Marks that the email alert for a lead was sent (the only field the public can change).
+create or replace function public.mark_lead_notified(p_id uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.leads set email_notified = true where id = p_id;
+$$;
+
+create index if not exists leads_email_recent_idx on public.leads (lower(business_email), created_at desc);
+
+revoke all on function public.submit_lead(text, text, text, text, text, text, text, text, text) from public;
+revoke all on function public.mark_lead_notified(uuid) from public;
+grant execute on function public.submit_lead(text, text, text, text, text, text, text, text, text) to anon, authenticated, service_role;
+grant execute on function public.mark_lead_notified(uuid) to anon, authenticated, service_role;

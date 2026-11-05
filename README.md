@@ -90,7 +90,7 @@ How a submission is handled (`app/api/enquiry/route.ts`):
 1. Hidden honeypot field and a per-instance burst limit
 2. Validation with the same Zod schema the browser uses (`lib/validation.ts`)
 3. **Cloudflare Turnstile** check (`lib/turnstile.ts`, `components/ui/Turnstile.tsx`), enforced when `TURNSTILE_SECRET_KEY` is set
-4. Persistent rate limit (5 per connection per 10 minutes), then the lead is **saved to Supabase** (`lib/supabase.ts`, table defined in `supabase/migrations/0001_leads.sql`)
+4. The lead is **saved to Supabase** by calling the database function `submit_lead()` with the publishable key (`lib/leads.ts`, clients in `lib/supabase/`, SQL in `supabase/migrations/0001_leads.sql`). No login needed. The function enforces rate limits (5 per connection per 10 min, 5 per email per hour, 200 per hour site-wide), and the table itself can't be read through the public API
 5. **Email alert via Resend** (`lib/email.ts`), sent after the response. If it fails, the lead is still saved with `email_notified = false`
 
 Fallbacks: without Supabase it delivers by email only. With neither configured, the form returns 503 and asks the visitor to email directly. It never shows a false success. IP addresses are never stored, only a salted hash used for rate limiting. The buyer's email is used as Reply-To, never as the sender.
@@ -101,7 +101,7 @@ See `.env.example`. All are optional locally: without them, the site runs and th
 
 | Variable | Where it's used |
 |---|---|
-| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Lead storage (server only) |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Lead storage (publishable key is public by design) |
 | `RESEND_API_KEY`, `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL` | Email alerts (server only) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Spam protection (site key is public) |
 | `IP_HASH_SALT` | Optional salt for rate-limit hashing |

@@ -1,7 +1,8 @@
 import { after } from "next/server";
 import { enquirySchema } from "@/lib/validation";
 import { emailConfig, sendEnquiryEmail } from "@/lib/email";
-import { hashIp, insertLead, markLeadNotified, recentLeadCount, supabaseConfigured } from "@/lib/supabase";
+import { hashIp, markLeadNotified, RateLimitedError, submitLead } from "@/lib/leads";
+import { supabaseConfigured } from "@/lib/supabase/env";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { site } from "@/lib/site";
 
@@ -10,7 +11,8 @@ import { site } from "@/lib/site";
  *  1. honeypot + per-instance burst limit (cheap, before any network call)
  *  2. Cloudflare Turnstile (when TURNSTILE_SECRET_KEY is set)
  *  3. Zod validation (same schema as the browser)
- *  4. persistent rate limit + save the lead to Supabase  ← the lead is never lost after this
+ *  4. save the lead to Supabase via submit_lead() (rate limits enforced in the database)
+ *     ← the lead is never lost after this
  *  5. email notification via Resend, sent after the response
  * Without Supabase configured it falls back to email-only delivery.
  */
@@ -18,7 +20,7 @@ import { site } from "@/lib/site";
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_PER_WINDOW = 5;
 
-/** Per-instance burst guard. Serverless instances don't share memory; the Supabase check below is the real limit. */
+/** Per-instance burst guard. Serverless instances don't share memory; the database limits are the real ones. */
 const hits = new Map<string, number[]>();
 function burstLimited(key: string) {
   const now = Date.now();
@@ -83,10 +85,7 @@ export async function POST(request: Request) {
   // Preferred path: save the lead, then notify by email in the background.
   if (hasDb) {
     try {
-      if ((await recentLeadCount(ipHash, WINDOW_MS)) >= MAX_PER_WINDOW) {
-        return fail(429, "Too many enquiries from this connection. Please try again later or email us directly.");
-      }
-      const leadId = await insertLead(data, { ipHash, userAgent: request.headers.get("user-agent") });
+      const leadId = await submitLead(data, { ipHash, userAgent: request.headers.get("user-agent") });
 
       if (hasEmail) {
         after(async () => {
@@ -101,6 +100,9 @@ export async function POST(request: Request) {
       }
       return Response.json({ ok: true });
     } catch (err) {
+      if (err instanceof RateLimitedError) {
+        return fail(429, "Too many enquiries. Please try again later or email us directly.");
+      }
       console.error("[enquiry] Supabase save failed", err);
       if (!hasEmail) return fail(502, `We couldn't send your enquiry just now. Please try again or ${directEmail.toLowerCase()}`);
       // Fall through: deliver by email so the enquiry still reaches the team.

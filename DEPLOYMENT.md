@@ -23,10 +23,10 @@ Keep a private note open while you work. You'll copy several keys from steps 1�
 2. When the project is ready, open **SQL Editor** → **New query**. Paste the whole of [`supabase/migrations/0001_leads.sql`](supabase/migrations/0001_leads.sql), then click **Run**. You should see "Success. No rows returned".
 3. Open **Table Editor**. You should see an empty `leads` table.
 4. Copy two values from **Project Settings**:
-   - **Project URL** (Data API / API Keys page), like `https://abcdxyz.supabase.co` → this is `SUPABASE_URL`
-   - **API Keys → Secret keys**: create or reveal a secret key (`sb_secret_...`) → this is `SUPABASE_SECRET_KEY`
+   - **Project URL** (Data API / API Keys page), like `https://abcdxyz.supabase.co` → this is `NEXT_PUBLIC_SUPABASE_URL`
+   - **API Keys → Publishable key** (`sb_publishable_...`) → this is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
-> The `leads` table has Row Level Security turned on with no public access. Only the website's server, holding the secret key, can add leads. Don't share the secret key, and never put it in a variable starting with `NEXT_PUBLIC_`.
+> No login is needed to submit the form. The publishable key is public by design: with it, visitors can only **add** a lead through the `submit_lead()` database function, which also enforces rate limits. Nobody can read, change or delete leads through the public API; you see them only in the Supabase dashboard. Never use the **secret** key (`sb_secret_...`) in this app.
 
 **Managing leads:** open **Table Editor → leads**. Change `status` (new → contacted → quoted → won/lost/spam) and add `notes`. Use **Export → CSV** for a spreadsheet.
 
@@ -54,8 +54,8 @@ Email alerts are optional. If Resend isn't set up yet, leads are still saved in 
 
    | Name | Value |
    |---|---|
-   | `SUPABASE_URL` | from step 1 |
-   | `SUPABASE_SECRET_KEY` | from step 1 |
+   | `NEXT_PUBLIC_SUPABASE_URL` | from step 1 |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | from step 1 |
    | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | from step 2 |
    | `TURNSTILE_SECRET_KEY` | from step 2 |
    | `RESEND_API_KEY` | from step 3 |
@@ -110,6 +110,7 @@ Resend's records go on their own `send` subdomain, so they don't conflict. Don't
 | Symptom | Fix |
 |---|---|
 | Form says "temporarily unavailable" | Neither Supabase nor Resend variables are set in Vercel. Add them and redeploy |
+| Logs show `submit_lead failed: PGRST202` | The SQL file hasn't been run in Supabase yet (step 1.2) |
 | Form says "couldn't verify this submission" | Turnstile keys are wrong or the hostname isn't listed in the Turnstile widget |
 | Lead saved but no email | Check Resend → Logs, and that the domain shows **Verified**. The lead has `email_notified = false` |
 | Error logs | Vercel → Project → **Logs**, filter by `/api/enquiry` |
