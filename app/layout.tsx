@@ -4,6 +4,7 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { site } from "@/lib/site";
+import { founder } from "@/lib/founder";
 
 // Display: a refined high-contrast serif that reads as an established trading house.
 const playfair = Playfair_Display({
@@ -54,6 +55,12 @@ const orgJsonLd = {
   description: site.description,
   logo: `${site.url}/brand/nc-logo.png`,
   telephone: site.whatsapp.display,
+  founder: {
+    "@type": "Person",
+    name: founder.name,
+    jobTitle: founder.role,
+    ...(founder.linkedin ? { sameAs: [founder.linkedin] } : {}),
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

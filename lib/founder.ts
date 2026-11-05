@@ -20,5 +20,5 @@ export const founder = {
   focus: ["Automotive & Mobility", "Food & Agriculture"],
   email: site.email,
   /** Full LinkedIn profile URL, e.g. "https://www.linkedin.com/in/..." */
-  linkedin: "",
+  linkedin: "https://www.linkedin.com/in/mahimai-mohan-raj-aa84062b2/",
 };
