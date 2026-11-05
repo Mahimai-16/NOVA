@@ -34,13 +34,15 @@ lib/
 
 Section anchors: `#home`, `#about`, `#divisions`, `#products`, `#process`, `#global-reach`, `#why-us`, `#contact`, `#footer`.
 
-## Brand assets (action needed)
+## Brand assets
 
-| Item | Status | What to do |
+| Item | File | Notes |
 |---|---|---|
-| Official gold NC logo | **Not supplied** | The header and footer show a provisional typographic wordmark (`components/ui/Wordmark.tsx`). It is **not** the official logo. Add the logo files to `public/brand/` (for example `nc-logo-light.svg` for dark backgrounds) and replace the `<Wordmark />` usages in `Navbar.tsx` and `Footer.tsx` with `next/image`. |
-| Brand guidelines | Not supplied | The palette and typography follow the project brief (midnight navy + international blue, Sora/Inter). Adjust the tokens in `app/globals.css` if the guidelines differ, for example if gold accents should match the logo. |
-| Favicon | Default | Replace `app/favicon.ico` with an icon made from the official logo. |
+| NC monogram (gold, transparent) | `public/brand/nc-logo.png` | Shown beside the company name in the header, footer and secondary pages (`components/ui/Wordmark.tsx`) and in the Organization JSON-LD |
+| Browser tab icon | `app/icon.png`, `app/favicon.ico` | Generated from the monogram (favicon has 16/32/48 px) |
+| iPhone home-screen icon | `app/apple-icon.png` | Monogram on midnight navy, 180 px |
+
+To replace the logo, overwrite these files with versions made from the new artwork (same names).
 
 ## Photography
 
@@ -147,7 +149,7 @@ To test Turnstile locally, use Cloudflare's always-pass test keys: site `1x00000
 
 ## Still needed before launch
 
-- [ ] Official logo files (SVG/PNG, light and dark variants) and brand guidelines
+- [x] Official NC logo (added). Brand guidelines still welcome
 - [ ] Supabase, Turnstile, Resend and Vercel set up (DEPLOYMENT.md)
 - [ ] Namecheap DNS changes (keep the Google Workspace email records)
 - [ ] Review the privacy policy wording (`app/privacy/page.tsx`)

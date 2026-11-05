@@ -52,6 +52,7 @@ const orgJsonLd = {
   url: site.url,
   email: site.email,
   description: site.description,
+  logo: `${site.url}/brand/nc-logo.png`,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
