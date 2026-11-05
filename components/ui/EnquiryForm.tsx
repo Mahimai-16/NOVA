@@ -83,6 +83,8 @@ export default function EnquiryForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...values, turnstileToken }),
+        // Never leave the visitor waiting on "Sending…" if the connection stalls.
+        signal: AbortSignal.timeout(20_000),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -98,8 +100,13 @@ export default function EnquiryForm() {
         setServerError(data.error || `We couldn't send your enquiry. Please email ${site.email}.`);
         setStatus("error");
       }
-    } catch {
-      setServerError(`Network error. Please check your connection or email ${site.email}.`);
+    } catch (err) {
+      const timedOut = err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError");
+      setServerError(
+        timedOut
+          ? `The connection is taking too long. Please check your internet connection and try again, or email ${site.email}.`
+          : `Network error. Please check your connection and try again, or email ${site.email}.`,
+      );
       setStatus("error");
     }
     // Turnstile tokens are single-use: get a fresh one for any further attempt.
