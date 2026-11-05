@@ -53,6 +53,7 @@ const orgJsonLd = {
   email: site.email,
   description: site.description,
   logo: `${site.url}/brand/nc-logo.png`,
+  telephone: site.whatsapp.display,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

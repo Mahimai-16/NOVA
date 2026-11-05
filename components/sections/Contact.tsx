@@ -2,6 +2,7 @@ import { Mail, ListChecks } from "lucide-react";
 import Reveal from "@/components/motion/Reveal";
 import SectionHeading from "@/components/ui/SectionHeading";
 import EnquiryForm from "@/components/ui/EnquiryForm";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 import { site } from "@/lib/site";
 
 const helpful = [
@@ -33,6 +34,23 @@ export default function Contact() {
             <span className="min-w-0">
               <span className="eyebrow block text-steel">Email</span>
               <span className="mt-1 block break-all font-medium text-navy-900 group-hover:text-brand sm:text-lg">{site.email}</span>
+            </span>
+          </a>
+
+          <a
+            data-reveal
+            href={`https://wa.me/${site.whatsapp.number}?text=${encodeURIComponent("Hello Nova Covenant, I have a business enquiry.")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Chat on WhatsApp: ${site.whatsapp.display}`}
+            className="group mt-4 flex items-center gap-4 rounded-[var(--radius-card)] border border-line bg-white p-5 transition-colors hover:border-[#25D366]"
+          >
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white">
+              <WhatsAppIcon className="size-6" />
+            </span>
+            <span className="min-w-0">
+              <span className="eyebrow block text-steel">WhatsApp contact</span>
+              <span className="mt-1 block font-medium text-navy-900 group-hover:text-[#128C7E] sm:text-lg">{site.whatsapp.display}</span>
             </span>
           </a>
 

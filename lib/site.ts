@@ -2,6 +2,8 @@ export const site = {
   name: "Nova Covenant International Trading",
   shortName: "Nova Covenant",
   email: "mahi@novacovenanttrading.com",
+  /** WhatsApp business contact. `number` is digits only with country code (for wa.me links). */
+  whatsapp: { display: "+91 73395 91214", number: "917339591214" },
   url: "https://novacovenanttrading.com",
   description:
     "Nova Covenant International Trading is a multi-country trading, sourcing and distribution partner for importers, dealers, distributors and commercial buyers — serving Automotive & Mobility and Food & Agriculture.",

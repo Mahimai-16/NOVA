@@ -142,7 +142,7 @@ To test Turnstile locally, use Cloudflare's always-pass test keys: site `1x00000
 
 - All copy uses only the confirmed facts: multi-country operations and sourcing; trading, sourcing and distribution; the two divisions and their products; a global B2B audience; the enquiry email.
 - The Global Reach map names India as origin and the UAE, Nigeria, the Middle East, Africa and other markets as trade connections, at the founder's request. These are markets served, not offices.
-- **Not included on purpose:** office locations, statistics, certifications, client logos, testimonials, phone number, postal address, social links, registration numbers, and delivery promises. Add them only once confirmed.
+- **Not included on purpose:** office locations, statistics, certifications, client logos, testimonials, postal address, social links, registration numbers, and delivery promises. Add them only once confirmed.
 - Brand content (from the founder): the hero headline is the primary tagline **"Bridging Nations. Building Trust."** and its eyebrow is the secondary tagline **"Trade Beyond Borders."** The vision statement ("Build a globally recognized, trustworthy and profitable international trading company") sits in the About section. All three live in `lib/site.ts`. The brief's original headline is now the hero's supporting sentence.
 - Typography: **Playfair Display** (serif) for headings and **Inter** for body and interface text.
 - The "Helpful to include" list and form placeholders tell buyers what to send (part numbers, quantity, port, Incoterm). They make no claims about the company.
