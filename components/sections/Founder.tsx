@@ -48,22 +48,31 @@ export default function Founder() {
           {/* Portrait */}
           <div className="relative lg:col-span-5">
             <div data-reveal-image className="relative aspect-[4/5] h-full w-full overflow-hidden bg-navy-900 lg:aspect-auto lg:min-h-[560px]">
-              {/* 3D stage: framed portrait on a pedestal with a container ship in orbit (three.js) */}
-              <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,#1a3566_0%,#0d1b31_55%,#071321_100%)]" />
-              <FounderStage photo={founder.photo || undefined}>
-                {founder.photo ? (
-                  <Image src={founder.photo} alt={founder.name ? `Portrait of ${founder.name}` : "Founder portrait"} fill sizes="(min-width: 1024px) 520px, 100vw" className="object-cover" />
-                ) : (
-                  <div className="absolute inset-4 flex flex-col items-center justify-center rounded-[18px] border-2 border-dashed border-white/20 text-center sm:inset-6">
-                    <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(40,85,217,0.35),transparent_60%)]" />
-                    <span className="relative flex size-20 items-center justify-center rounded-full bg-white/10 text-white/70 ring-1 ring-white/15">
-                      <ImagePlus className="size-8" aria-hidden />
-                    </span>
-                    <p className="relative mt-6 font-display text-lg font-semibold text-white">Founder photo</p>
-                    <p className="relative mt-2 max-w-[16rem] text-sm leading-relaxed text-white/50">Portrait placeholder. Add a 4:5 photo and set it in lib/founder.ts</p>
-                  </div>
-                )}
-              </FounderStage>
+              {founder.photo ? (
+                /* Real portrait: shown as the original photo, no 3D effects or overlays */
+                <Image
+                  src={founder.photo}
+                  alt={founder.name ? `Portrait of ${founder.name}` : "Founder portrait"}
+                  fill
+                  sizes="(min-width: 1024px) 40vw, 100vw"
+                  className="object-cover object-top"
+                />
+              ) : (
+                <>
+                  {/* No photo yet: 3D stage with a placeholder panel and a container ship in orbit (three.js) */}
+                  <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,#1a3566_0%,#0d1b31_55%,#071321_100%)]" />
+                  <FounderStage>
+                    <div className="absolute inset-4 flex flex-col items-center justify-center rounded-[18px] border-2 border-dashed border-white/20 text-center sm:inset-6">
+                      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(40,85,217,0.35),transparent_60%)]" />
+                      <span className="relative flex size-20 items-center justify-center rounded-full bg-white/10 text-white/70 ring-1 ring-white/15">
+                        <ImagePlus className="size-8" aria-hidden />
+                      </span>
+                      <p className="relative mt-6 font-display text-lg font-semibold text-white">Founder photo</p>
+                      <p className="relative mt-2 max-w-[16rem] text-sm leading-relaxed text-white/50">Portrait placeholder. Add a 4:5 photo and set it in lib/founder.ts</p>
+                    </div>
+                  </FounderStage>
+                </>
+              )}
               <span className="pointer-events-none absolute bottom-6 left-6 inline-flex items-center gap-2 rounded-full bg-white/95 px-3.5 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-navy-900">
                 <span aria-hidden className="size-1.5 rounded-full bg-brand" />
                 Founder

@@ -60,7 +60,7 @@ Company-supplied images (replace any time, same filename):
 
 Edit **`lib/founder.ts`**. Any empty field (`""`) shows as a dashed placeholder on the site:
 - `name`: full public name
-- `photo`: portrait path, e.g. `/images/company/founder.jpg` (4:5, 1200 px+ tall). Put the file in `public/images/company/`.
+- `photo`: portrait path (4:5). Put the file in `public/founder/` with a new file name each time you change it, so no cached old image is shown.
 - `background`: one line on experience or industry (optional)
 - `linkedin`: full profile URL
 - `message`: a **draft** founder's note; review and personalise it before launch
@@ -69,7 +69,7 @@ Edit **`lib/founder.ts`**. Any empty field (`""`) shows as a dashed placeholder 
 ### 3D founder stage (three.js)
 
 `components/three/ShipOrbitScene.tsx` renders the portrait as a **3D framed panel on a pedestal**, with a **low-poly container ship** sailing around it on a water ring. The ship has a hull, stacked containers in brand colours, a bridge, a funnel and a wake.
-- When `founder.photo` is set, the photo is mapped onto the 3D panel, cover-fit to 4:5.
+- When `founder.photo` is set, the **original photo is shown as-is** (no 3D stage). The 3D stage only appears while there is no photo.
 - three.js is **lazy-loaded** by `components/three/FounderStage.tsx` only as the card approaches the viewport. The static 2D placeholder shows first and stays if WebGL isn't available.
 - It renders only while on screen, tilts slightly with the mouse, and shows a single still frame with reduced motion.
 - Adjust `ORBIT_R`, the ship scale and the lap speed (`angle += dt * 0.42`) in that file.
