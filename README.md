@@ -153,5 +153,5 @@ To test Turnstile locally, use Cloudflare's always-pass test keys: site `1x00000
 - [ ] Supabase, Turnstile, Resend and Vercel set up (DEPLOYMENT.md)
 - [ ] Namecheap DNS changes (keep the Google Workspace email records)
 - [ ] Review the privacy policy wording (`app/privacy/page.tsx`)
-- [ ] Founder name, portrait, LinkedIn URL and approved founder's message (`lib/founder.ts`)
+- [x] Founder name, portrait and LinkedIn URL (`lib/founder.ts`). Review the founder's message wording any time
 - [ ] Optional confirmed details: WhatsApp business number, LinkedIn page, public location

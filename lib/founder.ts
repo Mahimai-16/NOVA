@@ -10,7 +10,7 @@ export const founder = {
   role: "Founder & Managing Director",
   /** Public location shown on the business card. */
   location: "Tirupur, India",
-  /** Portrait path (portrait 4:5, 1200px+ tall). Currently an ILLUSTRATED PLACEHOLDER: replace public/founder/founder.jpg with the real photo (same name) before launch. */
+  /** Portrait path (4:5). To change the photo, replace public/founder/founder.jpg (same name). */
   photo: "/founder/founder.jpg",
   /** Short founder's note (2–4 sentences). DRAFT: review and personalise before launch. */
   message:
