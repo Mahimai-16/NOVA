@@ -33,7 +33,7 @@ Keep a private note open while you work. You'll copy several keys from steps 1�
 ## 2. Cloudflare Turnstile: spam protection
 
 1. Go to **dash.cloudflare.com** → sign up (free, no need to move your domain) → **Turnstile** → **Add widget**.
-2. Widget name: `Nova Covenant website`. Hostnames: add `novacovenanttrading.com`, `www.novacovenanttrading.com` and `vercel.app`.
+2. Widget name: `Nova Covenant website`. Hostnames: add `novacovenanttrading.com`, `www.novacovenanttrading.com` and `nova-brown-nine.vercel.app`.
 3. Widget mode: **Managed**. Pre-clearance: **No**. Click **Create**.
 4. Copy the **Site key** → `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, and the **Secret key** → `TURNSTILE_SECRET_KEY`.
 
