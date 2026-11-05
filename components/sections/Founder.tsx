@@ -49,13 +49,13 @@ export default function Founder() {
           <div className="relative lg:col-span-5">
             <div data-reveal-image className="relative aspect-[4/5] h-full w-full overflow-hidden bg-navy-900 lg:aspect-auto lg:min-h-[560px]">
               {founder.photo ? (
-                /* Real portrait: shown as the original photo, no 3D effects or overlays */
+                /* Picture set in lib/founder.ts: shown as the original image, no 3D effects or overlays */
                 <Image
                   src={founder.photo}
-                  alt={founder.name ? `Portrait of ${founder.name}` : "Founder portrait"}
+                  alt={founder.photoAlt || (founder.name ? `Portrait of ${founder.name}` : "Founder portrait")}
                   fill
                   sizes="(min-width: 1024px) 40vw, 100vw"
-                  className="object-cover object-top"
+                  className="object-cover object-center"
                 />
               ) : (
                 <>
