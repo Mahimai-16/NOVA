@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { site } from "@/lib/site";
 
 // Display: a refined high-contrast serif that reads as an established trading house.
@@ -67,6 +69,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

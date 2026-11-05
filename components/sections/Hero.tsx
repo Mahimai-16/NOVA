@@ -1,11 +1,15 @@
 import Image from "next/image";
 import HeroMotion from "@/components/motion/HeroMotion";
 import Button from "@/components/ui/Button";
+import { site } from "@/lib/site";
 
 /**
  * HERO — shipment imagery and text ONLY.
  * Do not add product imagery, product names, metrics or badges here (brand rule).
  */
+/** "Bridging Nations. Building Trust." → second sentence gets the gold italic treatment. */
+const [taglineLead, taglineAccent] = site.tagline.split(/(?<=\.)\s+/);
+
 export default function Hero() {
   return (
     <HeroMotion id="home" className="relative isolate flex min-h-[100svh] items-center overflow-hidden bg-navy-950 text-white">
@@ -58,14 +62,14 @@ export default function Hero() {
         <div data-depth="16" className="max-w-[54rem] [text-shadow:0_2px_28px_rgba(7,19,33,0.6)]">
           <p data-hero-item className="eyebrow flex items-center gap-3 text-[0.8125rem] tracking-[0.28em] text-[#8FB8FF]">
             <span aria-hidden className="h-px w-12 bg-gradient-to-r from-[#8FB8FF] to-transparent" />
-            Trade Beyond Borders
+            {site.secondaryTagline.replace(/\.$/, "")}
           </p>
           <h1
             data-hero-item
             className="mt-7 font-display text-[clamp(2.5rem,5vw,6rem)] font-medium leading-[1.06] tracking-[-0.015em]"
           >
-            <span className="block sm:whitespace-nowrap">Bridging Nations.</span>
-            <span className="-mb-[0.15em] block w-fit pb-[0.15em] pr-[0.15em] italic text-grad-gold [text-shadow:none] sm:whitespace-nowrap">Building Trust.</span>
+            <span className="block sm:whitespace-nowrap">{taglineLead}</span>
+            <span className="-mb-[0.15em] block w-fit pb-[0.15em] pr-[0.15em] italic text-grad-gold [text-shadow:none] sm:whitespace-nowrap">{taglineAccent}</span>
           </h1>
           <p data-hero-item className="mt-8 max-w-[32rem] text-lg leading-relaxed text-white/80 xl:max-w-[36rem] xl:text-xl">
             Connecting markets with dependable products through international trading, sourcing and distribution, built on reliable relationships and clear communication.

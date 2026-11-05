@@ -21,6 +21,10 @@ const pillars = [
   },
 ];
 
+/** "Build a globally recognized…" → "To build a globally recognized…" with the verb highlighted. */
+const [visionVerb, ...visionWords] = site.vision.split(" ");
+const visionRest = visionWords.join(" ");
+
 export default function About() {
   return (
     <Reveal as="section" id="about" aria-labelledby="about-title" className="section-y bg-grad-white">
@@ -59,8 +63,7 @@ export default function About() {
             </figcaption>
             <blockquote className="lg:col-span-9">
               <p className="font-display text-[clamp(1.625rem,3vw,2.5rem)] font-medium italic leading-snug tracking-[-0.01em] text-balance">
-                To <span className="text-grad-gold not-italic">build</span> a globally recognized, trustworthy and profitable
-                international trading company.
+                To <span className="text-grad-gold not-italic">{visionVerb.toLowerCase()}</span> {visionRest}
               </p>
             </blockquote>
           </div>

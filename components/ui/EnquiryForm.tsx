@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } fr
 import { AlertCircle, CheckCircle2, Loader2, Send, ChevronDown } from "lucide-react";
 import { enquirySchema, type EnquiryField } from "@/lib/validation";
 import { divisionOptions, SELECT_DIVISION_EVENT, site } from "@/lib/site";
+import Turnstile, { TURNSTILE_SITE_KEY, type TurnstileHandle } from "./Turnstile";
 
 type Values = Record<EnquiryField, string> & { website: string };
 type Status = "idle" | "submitting" | "success" | "error";
@@ -30,6 +31,8 @@ export default function EnquiryForm() {
   const [serverError, setServerError] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   useEffect(() => {
     const onSelect = (e: Event) => {
@@ -67,12 +70,19 @@ export default function EnquiryForm() {
       return;
     }
 
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setServerError("Just a moment: we're running a quick security check. Please press Send again in a few seconds.");
+      setStatus("error");
+      requestAnimationFrame(() => statusRef.current?.focus());
+      return;
+    }
+
     setStatus("submitting");
     try {
       const res = await fetch("/api/enquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, turnstileToken }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -92,6 +102,8 @@ export default function EnquiryForm() {
       setServerError(`Network error. Please check your connection or email ${site.email}.`);
       setStatus("error");
     }
+    // Turnstile tokens are single-use: get a fresh one for any further attempt.
+    turnstileRef.current?.reset();
     requestAnimationFrame(() => statusRef.current?.focus());
   }
 
@@ -198,6 +210,8 @@ export default function EnquiryForm() {
         <input id={`${uid}-website`} name="website" type="text" tabIndex={-1} autoComplete="off" value={values.website} onChange={(e) => update("website", e.target.value)} />
       </div>
 
+      <Turnstile ref={turnstileRef} onToken={setTurnstileToken} />
+
       {status === "error" && serverError && (
         <div
           ref={statusRef}
@@ -212,7 +226,11 @@ export default function EnquiryForm() {
 
       <div className="mt-8 flex flex-col-reverse gap-5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs leading-relaxed text-steel sm:max-w-xs">
-          Your details are used only to respond to this enquiry. All fields are required.
+          All fields are required. Your details are used only to respond to this enquiry. See our{" "}
+          <a href="/privacy" className="underline underline-offset-2 hover:text-brand">
+            Privacy Policy
+          </a>
+          .
         </p>
         <button
           type="submit"

@@ -1,74 +1,117 @@
+import { after } from "next/server";
 import { enquirySchema } from "@/lib/validation";
 import { emailConfig, sendEnquiryEmail } from "@/lib/email";
+import { hashIp, insertLead, markLeadNotified, recentLeadCount, supabaseConfigured } from "@/lib/supabase";
+import { verifyTurnstile } from "@/lib/turnstile";
+import { site } from "@/lib/site";
 
 /**
- * Best-effort, per-instance rate limit. On serverless hosts each instance keeps
- * its own memory, so this is NOT persistent protection — see README.
+ * Enquiry pipeline:
+ *  1. honeypot + per-instance burst limit (cheap, before any network call)
+ *  2. Cloudflare Turnstile (when TURNSTILE_SECRET_KEY is set)
+ *  3. Zod validation (same schema as the browser)
+ *  4. persistent rate limit + save the lead to Supabase  ← the lead is never lost after this
+ *  5. email notification via Resend, sent after the response
+ * Without Supabase configured it falls back to email-only delivery.
  */
+
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_PER_WINDOW = 5;
-const hits = new Map<string, number[]>();
 
-function rateLimited(ip: string) {
+/** Per-instance burst guard. Serverless instances don't share memory; the Supabase check below is the real limit. */
+const hits = new Map<string, number[]>();
+function burstLimited(key: string) {
   const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+  const recent = (hits.get(key) ?? []).filter((t) => now - t < WINDOW_MS);
   recent.push(now);
-  hits.set(ip, recent);
+  hits.set(key, recent);
   if (hits.size > 5000) hits.clear();
-  return recent.length > MAX_PER_WINDOW;
+  return recent.length > MAX_PER_WINDOW * 2;
 }
+
+const fail = (status: number, error: string, extra?: Record<string, unknown>) =>
+  Response.json({ ok: false, error, ...extra }, { status });
+
+const directEmail = `Please email ${site.email} directly.`;
 
 export async function POST(request: Request) {
   const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+  const ipHash = hashIp(ip);
 
-  if (rateLimited(ip)) {
-    return Response.json(
-      { ok: false, error: "Too many enquiries from this connection. Please try again later or email us directly." },
-      { status: 429 },
-    );
+  if (burstLimited(ipHash)) {
+    return fail(429, "Too many enquiries from this connection. Please try again later or email us directly.");
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return Response.json({ ok: false, error: "Invalid request." }, { status: 400 });
+    return fail(400, "Invalid request.");
   }
+  if (!body || typeof body !== "object") return fail(400, "Invalid request.");
+  const raw = body as Record<string, unknown>;
 
   // Honeypot: bots fill hidden fields. Respond neutrally without sending.
-  if (body && typeof body === "object" && "website" in body && (body as { website?: unknown }).website) {
-    return Response.json({ ok: false, error: "Unable to process this enquiry." }, { status: 400 });
-  }
+  if (raw.website) return fail(400, "Unable to process this enquiry.");
 
-  const parsed = enquirySchema.safeParse(body);
+  const parsed = enquirySchema.safeParse(raw);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
       const key = String(issue.path[0] ?? "form");
       fieldErrors[key] ??= issue.message;
     }
-    return Response.json({ ok: false, error: "Please check the highlighted fields.", fieldErrors }, { status: 422 });
+    return fail(422, "Please check the highlighted fields.", { fieldErrors });
+  }
+  const data = parsed.data;
+
+  if (!(await verifyTurnstile(raw.turnstileToken, ip))) {
+    return fail(400, "We couldn't verify this submission. Please refresh the page and try again.", {
+      code: "TURNSTILE_FAILED",
+    });
   }
 
-  if (!emailConfig()) {
-    console.error("[enquiry] RESEND_API_KEY / CONTACT_FROM_EMAIL not configured");
-    return Response.json(
-      { ok: false, error: "Online enquiries are temporarily unavailable. Please email mahi@novacovenanttrading.com directly." },
-      { status: 503 },
-    );
+  const hasDb = supabaseConfigured();
+  const hasEmail = emailConfig() !== null;
+
+  if (!hasDb && !hasEmail) {
+    console.error("[enquiry] neither Supabase nor Resend is configured");
+    return fail(503, `Online enquiries are temporarily unavailable. ${directEmail}`);
+  }
+
+  // Preferred path: save the lead, then notify by email in the background.
+  if (hasDb) {
+    try {
+      if ((await recentLeadCount(ipHash, WINDOW_MS)) >= MAX_PER_WINDOW) {
+        return fail(429, "Too many enquiries from this connection. Please try again later or email us directly.");
+      }
+      const leadId = await insertLead(data, { ipHash, userAgent: request.headers.get("user-agent") });
+
+      if (hasEmail) {
+        after(async () => {
+          try {
+            await sendEnquiryEmail(data, leadId);
+            await markLeadNotified(leadId);
+          } catch (err) {
+            // The lead is already saved; it just shows email_notified = false.
+            console.error("[enquiry] lead saved but email notification failed", leadId, err);
+          }
+        });
+      }
+      return Response.json({ ok: true });
+    } catch (err) {
+      console.error("[enquiry] Supabase save failed", err);
+      if (!hasEmail) return fail(502, `We couldn't send your enquiry just now. Please try again or ${directEmail.toLowerCase()}`);
+      // Fall through: deliver by email so the enquiry still reaches the team.
+    }
   }
 
   try {
-    await sendEnquiryEmail(parsed.data);
+    await sendEnquiryEmail(data);
     return Response.json({ ok: true });
   } catch (err) {
-    console.error("[enquiry] send failed", err);
-    return Response.json(
-      { ok: false, error: "We couldn't send your enquiry just now. Please try again or email mahi@novacovenanttrading.com." },
-      { status: 502 },
-    );
+    console.error("[enquiry] email send failed", err);
+    return fail(502, `We couldn't send your enquiry just now. Please try again or ${directEmail.toLowerCase()}`);
   }
 }

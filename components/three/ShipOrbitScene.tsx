@@ -178,7 +178,7 @@ export default function ShipOrbitScene({ photo, onReady }: { photo?: string; onR
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap; // PCFSoftShadowMap was removed in recent three.js
     renderer.domElement.style.cssText = "width:100%;height:100%;display:block;";
     renderer.domElement.setAttribute("aria-hidden", "true");
     host.appendChild(renderer.domElement);
@@ -357,7 +357,7 @@ export default function ShipOrbitScene({ photo, onReady }: { photo?: string; onR
     host.addEventListener("pointerleave", onLeave);
 
     /* Animation loop (paused while off-screen) */
-    const clock = new THREE.Clock();
+    const clock = new THREE.Timer(); // THREE.Clock is deprecated
     let angle = 0.6; // start front-right
     const place = (t: number, time: number) => {
       const x = Math.cos(t) * ORBIT_R;
@@ -374,8 +374,9 @@ export default function ShipOrbitScene({ photo, onReady }: { photo?: string; onR
     let visible = false;
     let readyFired = false;
     const frameFn = () => {
+      clock.update();
       const dt = Math.min(clock.getDelta(), 0.05);
-      const time = clock.elapsedTime;
+      const time = clock.getElapsed();
       if (!reduced) {
         angle += dt * 0.42; // ~15s per lap
         panel.rotation.y = Math.sin(time * 0.4) * 0.06;
@@ -397,7 +398,7 @@ export default function ShipOrbitScene({ photo, onReady }: { photo?: string; onR
       visible = entry.isIntersecting;
       cancelAnimationFrame(raf);
       if (visible) {
-        clock.getDelta();
+        clock.update(); // skip the time spent off-screen
         raf = requestAnimationFrame(frameFn);
       }
     });

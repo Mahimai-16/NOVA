@@ -16,7 +16,7 @@ Other scripts: `npm run build` (production build), `npm start` (serve the build)
 
 ```
 app/
-  layout.tsx              fonts (Sora + Inter), SEO / Open Graph, Organization JSON-LD
+  layout.tsx              fonts (Playfair Display + Inter), SEO / Open Graph, Organization JSON-LD
   page.tsx                assembles the sections in order
   globals.css             design tokens (colors, fonts, radii), container + section utilities
   api/enquiry/route.ts    POST handler: honeypot, rate limit, Zod validation, Resend
@@ -82,28 +82,39 @@ On desktop with a mouse or trackpad, hero layers marked `data-depth` follow the 
 - Routes start in India. **India – UAE (Dubai)** and **India – Nigeria (Lagos)** are tier `primary`: gold, glowing and drawn first. All others are blue dotted secondary routes.
 - Animation: routes draw outward from India when the map scrolls into view, then dots march along each line and lights travel along the routes. With reduced motion, the map is static.
 
-## Enquiry email (Resend)
+## Enquiries: leads, email and spam protection
 
-1. Create a Resend account and **verify `novacovenanttrading.com`** (Domains → Add). Resend gives DNS records (SPF/DKIM TXT and an MX record on a `send.` subdomain). Add them in Namecheap → Advanced DNS.
-   - ⚠️ **Do not remove or change the existing Google Workspace MX, SPF, DKIM or DMARC records.** Resend's records go on their own subdomain. If you already have an SPF record on the root domain, don't create a second one.
-2. Create an API key and set the environment variables (see `.env.example`):
-   - `RESEND_API_KEY`: server-side only, never exposed to the browser
-   - `CONTACT_TO_EMAIL=mahi@novacovenanttrading.com`
-   - `CONTACT_FROM_EMAIL`: an address on the verified domain, e.g. `Nova Covenant Website <enquiries@novacovenanttrading.com>`
-3. The buyer's validated email is set as **Reply-To**. It is never used as the sender. The recipient comes only from server config.
+Step-by-step setup for going live is in **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
-Behaviour:
-- **No credentials:** the API returns 503 and the form tells the visitor to email `mahi@novacovenanttrading.com` directly. It never shows a false success.
-- **Success** shows only after Resend accepts the message.
-- Validation runs in the browser (for fast feedback) and again on the server with the same Zod schema. HTML in the email is escaped.
-- **Abuse protection:** hidden honeypot field, plus a best-effort in-memory limit of 5 requests per IP per 10 minutes. **Limitation:** on serverless hosts each instance has its own memory, so this is not persistent rate limiting. For stronger protection, add Upstash Redis rate limiting or Cloudflare Turnstile.
-- Enquiries are **not stored** in a database.
+How a submission is handled (`app/api/enquiry/route.ts`):
+1. Hidden honeypot field and a per-instance burst limit
+2. Validation with the same Zod schema the browser uses (`lib/validation.ts`)
+3. **Cloudflare Turnstile** check (`lib/turnstile.ts`, `components/ui/Turnstile.tsx`), enforced when `TURNSTILE_SECRET_KEY` is set
+4. Persistent rate limit (5 per connection per 10 minutes), then the lead is **saved to Supabase** (`lib/supabase.ts`, table defined in `supabase/migrations/0001_leads.sql`)
+5. **Email alert via Resend** (`lib/email.ts`), sent after the response. If it fails, the lead is still saved with `email_notified = false`
 
-## Deployment
+Fallbacks: without Supabase it delivers by email only. With neither configured, the form returns 503 and asks the visitor to email directly. It never shows a false success. IP addresses are never stored, only a salted hash used for rate limiting. The buyer's email is used as Reply-To, never as the sender.
 
-**Vercel (recommended, needed for the email API):** import the folder or repo, add the three environment variables, deploy, then add `novacovenanttrading.com` and `www` under Project → Domains. Set the DNS records Vercel shows in Namecheap (usually an `A` record for `@` and a `CNAME` for `www`). Change only those records and keep every email record. Check HTTPS, the form, and mobile layout before announcing the site.
+### Environment variables
 
-Static-only hosts (Netlify drop, Namecheap shared hosting) cannot run `app/api/enquiry`. Use a Node-capable host, or replace the route with a form service.
+See `.env.example`. All are optional locally: without them, the site runs and the form shows the "email us directly" message.
+
+| Variable | Where it's used |
+|---|---|
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Lead storage (server only) |
+| `RESEND_API_KEY`, `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL` | Email alerts (server only) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Spam protection (site key is public) |
+| `IP_HASH_SALT` | Optional salt for rate-limit hashing |
+
+To test Turnstile locally, use Cloudflare's always-pass test keys: site `1x00000000000000000000AA`, secret `1x0000000000000000000000000000000AA`.
+
+## Production setup
+
+- **Security headers** (`next.config.ts`): CSP (no nonces, so pages stay static), HSTS, frame blocking, nosniff, referrer and permissions policies
+- **SEO**: `app/robots.ts`, `app/sitemap.ts`, Open Graph metadata, Organization JSON-LD
+- **Pages**: `/privacy` (privacy policy, review the wording before launch), custom 404 (`app/not-found.tsx`)
+- **Analytics**: Vercel Analytics and Speed Insights (cookieless; enable both in the Vercel dashboard)
+- **Region**: `vercel.json` runs server functions in Mumbai (`bom1`), next to the Supabase database
 
 ## Motion and accessibility
 
@@ -124,7 +135,8 @@ Static-only hosts (Netlify drop, Namecheap shared hosting) cannot run `app/api/e
 ## Still needed before launch
 
 - [ ] Official logo files (SVG/PNG, light and dark variants) and brand guidelines
-- [ ] Resend account, domain verification and environment variables
-- [ ] Hosting account and DNS changes (keep the email records)
+- [ ] Supabase, Turnstile, Resend and Vercel set up (DEPLOYMENT.md)
+- [ ] Namecheap DNS changes (keep the Google Workspace email records)
+- [ ] Review the privacy policy wording (`app/privacy/page.tsx`)
 - [ ] Founder name, portrait, LinkedIn URL and approved founder's message (`lib/founder.ts`)
 - [ ] Optional confirmed details: WhatsApp business number, LinkedIn page, public location

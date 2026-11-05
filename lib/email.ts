@@ -20,7 +20,7 @@ export function emailConfig() {
   return apiKey && from ? { apiKey, to, from } : null;
 }
 
-export async function sendEnquiryEmail(data: Enquiry) {
+export async function sendEnquiryEmail(data: Enquiry, leadId?: string) {
   const config = emailConfig();
   if (!config) throw new Error("EMAIL_NOT_CONFIGURED");
 
@@ -33,6 +33,7 @@ export async function sendEnquiryEmail(data: Enquiry) {
     ["Country", data.country],
     ["Division", data.division],
     ["Product / requirement", data.requirement],
+    ...(leadId ? ([["Lead ID", leadId]] as [string, string][]) : []),
   ];
 
   const html = `
@@ -49,7 +50,7 @@ export async function sendEnquiryEmail(data: Enquiry) {
     </table>
     <h2 style="font-size:14px;color:#101D2E;margin:24px 0 8px">Message</h2>
     <p style="font-size:14px;line-height:1.6;white-space:pre-wrap;margin:0">${escapeHtml(data.message)}</p>
-    <p style="font-size:12px;color:#8795A5;margin-top:32px">Sent from the enquiry form on novacovenanttrading.com. Reply directly to respond to the buyer.</p>
+    <p style="font-size:12px;color:#8795A5;margin-top:32px">Sent from the enquiry form on novacovenanttrading.com. ${leadId ? "Saved to your Supabase leads table. " : ""}Reply directly to respond to the buyer.</p>
   </div>`;
 
   const text = [

@@ -1,5 +1,6 @@
 import { ArrowUpRight, Mail } from "lucide-react";
 import Wordmark from "@/components/ui/Wordmark";
+import CurrentYear from "@/components/ui/CurrentYear";
 import { navLinks, site } from "@/lib/site";
 
 export default function Footer() {
@@ -23,7 +24,7 @@ export default function Footer() {
             <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-1">
               {navLinks.map((l) => (
                 <li key={l.href}>
-                  <a href={l.href} className="text-sm text-white/70 transition-colors hover:text-white">
+                  <a href={`/${l.href}`} className="text-sm text-white/70 transition-colors hover:text-white">
                     {l.label}
                   </a>
                 </li>
@@ -46,8 +47,17 @@ export default function Footer() {
         </div>
 
         <div className="mt-20 flex flex-col gap-4 border-t border-white/10 pt-8 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 {site.name}. All rights reserved.</p>
-          <a href="#home" className="transition-colors hover:text-white">Back to top ↑</a>
+          <p>
+            © <CurrentYear /> {site.name}. All rights reserved.
+          </p>
+          <div className="flex items-center gap-6">
+            <a href="/privacy" className="transition-colors hover:text-white">
+              Privacy Policy
+            </a>
+            <a href="#main" className="transition-colors hover:text-white">
+              Back to top ↑
+            </a>
+          </div>
         </div>
       </div>
     </footer>
