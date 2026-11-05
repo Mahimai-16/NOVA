@@ -95,6 +95,18 @@ How a submission is handled (`app/api/enquiry/route.ts`):
 
 Fallbacks: without Supabase it delivers by email only. With neither configured, the form returns 503 and asks the visitor to email directly. It never shows a false success. IP addresses are never stored, only a salted hash used for rate limiting. The buyer's email is used as Reply-To, never as the sender.
 
+### Google Sheets lead tracking
+
+Every saved lead is also added to the **Leads** tab of a Google Sheet (Date & Time, Full Name, Company Name, Business Email, Country, Division, Requirement, Message, Status), sent in the background after the response, so a Sheets problem never blocks an enquiry. Each new day starts with a day/date header, separated from the previous day by 3 empty rows. **Status** is a dropdown (Pending / Approved, default Pending). Edit `STATUS_OPTIONS` in the script to add more. Status changes in the sheet are for your tracking and don't sync back to Supabase.
+
+Setup (one time):
+1. Open the Google Sheet → **Extensions → Apps Script**. Delete the sample code and paste `google-apps-script/LeadsSheet.gs`.
+2. Set `SECRET` at the top to the same value as `GOOGLE_SHEETS_WEBHOOK_SECRET`. Click **Save**.
+3. **Deploy → New deployment →** type **Web app**. Execute as **Me**, Who has access **Anyone** → **Deploy** → authorise with your Google account → copy the **Web app URL**.
+4. Set that URL as `GOOGLE_SHEETS_WEBHOOK_URL` in Vercel and redeploy.
+
+The script checks the secret on every request and stores values as plain text (no formulas), so visitors can't inject anything into the sheet. After editing the script later, use **Deploy → Manage deployments → Edit → Version: New version** to keep the same URL.
+
 ### Environment variables
 
 See `.env.example`. All are optional locally: without them, the site runs and the form shows the "email us directly" message.
@@ -104,6 +116,7 @@ See `.env.example`. All are optional locally: without them, the site runs and th
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Lead storage (publishable key is public by design) |
 | `RESEND_API_KEY`, `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL` | Email alerts (server only) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Spam protection (site key is public) |
+| `GOOGLE_SHEETS_WEBHOOK_URL`, `GOOGLE_SHEETS_WEBHOOK_SECRET` | Copy of each lead in the Google Sheet (server only) |
 | `IP_HASH_SALT` | Optional salt for rate-limit hashing |
 
 To test Turnstile locally, use Cloudflare's always-pass test keys: site `1x00000000000000000000AA`, secret `1x0000000000000000000000000000000AA`.

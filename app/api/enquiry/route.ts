@@ -4,6 +4,7 @@ import { emailConfig, sendEnquiryEmail } from "@/lib/email";
 import { hashIp, markLeadNotified, RateLimitedError, submitLead } from "@/lib/leads";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { appendLeadToSheet, sheetsConfigured } from "@/lib/sheets";
 import { site } from "@/lib/site";
 
 /**
@@ -13,7 +14,7 @@ import { site } from "@/lib/site";
  *  3. Zod validation (same schema as the browser)
  *  4. save the lead to Supabase via submit_lead() (rate limits enforced in the database)
  *     ← the lead is never lost after this
- *  5. email notification via Resend, sent after the response
+ *  5. after the response, in parallel: email alert via Resend + row in the Google Sheet
  * Without Supabase configured it falls back to email-only delivery.
  */
 
@@ -90,18 +91,21 @@ export async function POST(request: Request) {
       const leadId = await submitLead(data, { ipHash, userAgent: request.headers.get("user-agent") });
       console.log("[enquiry] lead saved", leadId);
 
-      if (hasEmail) {
-        after(async () => {
-          try {
-            await sendEnquiryEmail(data, leadId);
-            await markLeadNotified(leadId);
-            console.log("[enquiry] email alert sent", leadId);
-          } catch (err) {
-            // The lead is already saved; it just shows email_notified = false.
-            console.error("[enquiry] lead saved but email notification failed", leadId, err);
-          }
-        });
-      }
+      const createdAt = new Date();
+      after(async () => {
+        await Promise.all([
+          hasEmail &&
+            sendEnquiryEmail(data, leadId)
+              .then(() => markLeadNotified(leadId))
+              .then(() => console.log("[enquiry] email alert sent", leadId))
+              // The lead is already saved; it just shows email_notified = false.
+              .catch((err) => console.error("[enquiry] lead saved but email notification failed", leadId, err)),
+          sheetsConfigured() &&
+            appendLeadToSheet(data, { leadId, createdAt })
+              .then((row) => console.log("[enquiry] added to Google Sheet row", row, leadId))
+              .catch((err) => console.error("[enquiry] lead saved but Google Sheet update failed", leadId, err)),
+        ]);
+      });
       return Response.json({ ok: true });
     } catch (err) {
       if (err instanceof RateLimitedError) {
@@ -115,6 +119,13 @@ export async function POST(request: Request) {
 
   try {
     await sendEnquiryEmail(data);
+    if (sheetsConfigured()) {
+      after(() =>
+        appendLeadToSheet(data, { createdAt: new Date() }).catch((err) =>
+          console.error("[enquiry] Google Sheet update failed", err),
+        ),
+      );
+    }
     return Response.json({ ok: true });
   } catch (err) {
     console.error("[enquiry] email send failed", err);
