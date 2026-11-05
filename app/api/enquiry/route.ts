@@ -68,6 +68,8 @@ export async function POST(request: Request) {
   }
   const data = parsed.data;
 
+  console.log("[enquiry] received", { hasToken: typeof raw.turnstileToken === "string" && raw.turnstileToken.length > 0 });
+
   if (!(await verifyTurnstile(raw.turnstileToken, ip))) {
     return fail(400, "We couldn't verify this submission. Please refresh the page and try again.", {
       code: "TURNSTILE_FAILED",
@@ -86,12 +88,14 @@ export async function POST(request: Request) {
   if (hasDb) {
     try {
       const leadId = await submitLead(data, { ipHash, userAgent: request.headers.get("user-agent") });
+      console.log("[enquiry] lead saved", leadId);
 
       if (hasEmail) {
         after(async () => {
           try {
             await sendEnquiryEmail(data, leadId);
             await markLeadNotified(leadId);
+            console.log("[enquiry] email alert sent", leadId);
           } catch (err) {
             // The lead is already saved; it just shows email_notified = false.
             console.error("[enquiry] lead saved but email notification failed", leadId, err);
